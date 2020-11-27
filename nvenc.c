@@ -4,6 +4,17 @@
 #include <cuda.h>
 #include <string.h>
 
+/* tools 使用
+ *  ffmpeg 截取一帧数据
+ *  ffmpeg -i ba.mp4 -frames 1 -c:v rawvideo -pix_fmt nv12 out.yuv
+ * 
+ *  查看 raw
+ *  ffplay -f rawvideo -pix_fmt nv12 -s 1920x1080 -i a.yuv
+ * 
+ *  播放 h264
+ *  ffplay -f h264 -i test.264
+ */
+
 static NV_ENCODE_API_FUNCTION_LIST _nvenc = { NV_ENCODE_API_FUNCTION_LIST_VER }; // 一定要初始化一个 ver，要不然会有问题，惨痛的教训
 static void *_nvencoder = NULL;
 
@@ -22,7 +33,7 @@ void load_nvenc() {
     }
 
     CUdevice cu_device;
-    result = cuDeviceGet(&cu_device, 3);
+    result = cuDeviceGet(&cu_device, 0);
     if (result != NV_ENC_SUCCESS) {
         exit(11);
     }
@@ -236,13 +247,19 @@ void init_encoder() {
     printf("init encoder success!\n");
 }
 
+void end_encode() {
+
+}
+
+#define INPUT_FILE_NAME "nv12.yuv"
+
 void encode() {
     // create input buffer
     printf("\n");
     NV_ENC_CREATE_INPUT_BUFFER inputbuf = { NV_ENC_CREATE_INPUT_BUFFER_VER };
     inputbuf.width = 1920;
     inputbuf.height = 1080;
-    inputbuf.bufferFmt = NV_ENC_BUFFER_FORMAT_YUV444;
+    inputbuf.bufferFmt = NV_ENC_BUFFER_FORMAT_NV12;
     inputbuf.inputBuffer = NULL;
 
     int status = _nvenc.nvEncCreateInputBuffer(_nvencoder, &inputbuf);
@@ -262,13 +279,11 @@ void encode() {
     printf("create output stream success, %p\n", outbuf.bitstreamBuffer);
 
     // read yuv data
-    FILE *fp = fopen("/root/albert/out_yuv444.yuv", "r");
-    fseek(fp, 0, SEEK_END);//将文件位置指针置于文件结尾
+    FILE *fp = fopen("/root/albert/" INPUT_FILE_NAME, "r");
+    fseek(fp, 0, SEEK_END);
     size_t size = ftell(fp);
     printf("file size： %lu\n", size);
-    // char *data = malloc(size);
     fseek(fp, 0, SEEK_SET);
-    // printf("start code of image: %p\n", *(void**)data);
 
     // lock input 
     NV_ENC_LOCK_INPUT_BUFFER lockBufferParams = { NV_ENC_LOCK_INPUT_BUFFER_VER };
@@ -283,11 +298,8 @@ void encode() {
     printf("lock success: %p, %d\n", lockBufferParams.bufferDataPtr, lockBufferParams.pitch);
 
     // copy yuv data to GPU
-    char * data = malloc(size);
-    size = fread(data, 1, size, fp);
-    memcpy(lockBufferParams.bufferDataPtr, data, size);
+    fread(lockBufferParams.bufferDataPtr, 1, size, fp);
     printf("writer buffer size: %lu\n", size);
-    // memcpy(lockBufferParams.bufferDataPtr, data, size);
 
     status = _nvenc.nvEncUnlockInputBuffer(_nvencoder, inputbuf.inputBuffer);
     if (status != NV_ENC_SUCCESS) {
@@ -301,7 +313,9 @@ void encode() {
     picParams.version = NV_ENC_PIC_PARAMS_VER;
     picParams.inputWidth = 1920;
     picParams.inputHeight = 1080;
-    picParams.bufferFmt = NV_ENC_BUFFER_FORMAT_YUV444;
+
+    // 这里如果选择 yuv444 会导致失败 nvEncEncodePicture 返回 12，pix fmt 和 preset guid 要互相配合，这里的关系暂时没搞清楚
+    picParams.bufferFmt = NV_ENC_BUFFER_FORMAT_NV12;
     picParams.inputPitch = lockBufferParams.pitch;
     picParams.pictureStruct = NV_ENC_PIC_STRUCT_FRAME;
     picParams.inputBuffer = inputbuf.inputBuffer;
@@ -317,8 +331,30 @@ void encode() {
     }
     printf("GPU encode success\n");
 
+    // process output stream
+    NV_ENC_LOCK_BITSTREAM bitstream = { 0 };
+    bitstream.version = NV_ENC_LOCK_BITSTREAM_VER;
+    bitstream.outputBitstream = outbuf.bitstreamBuffer;
 
-    // free(data);
+    status = _nvenc.nvEncLockBitstream(_nvencoder, &bitstream);
+    if (status != NV_ENC_SUCCESS) {
+        exit(2);
+    }
+    printf("Total out bytes: %d\n", bitstream.bitstreamSizeInBytes);
+    
+    uint8_t *outdata = malloc(bitstream.bitstreamSizeInBytes);
+    memcpy(outdata, bitstream.bitstreamBufferPtr, bitstream.bitstreamSizeInBytes);
+
+    status = _nvenc.nvEncUnlockBitstream(_nvencoder, outbuf.bitstreamBuffer);
+    if (status != NV_ENC_SUCCESS) {
+        exit(2);
+    }
+
+    // out ot file
+    FILE *out_fp = fopen("/root/albert/out_" INPUT_FILE_NAME ".h264", "w");
+    fwrite(outdata, 1, bitstream.bitstreamSizeInBytes, out_fp);
+
+    free(outdata);
     fclose(fp);
 }
 
