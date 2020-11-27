@@ -10,4 +10,4 @@ gcc -g -O0 -fPIC ${INCLUDE_DIRS} nvenc.c -lnvidia-encode -lcuda -o nvenc
 # g++ -g -O0 -fPIC ${INCLUDE_DIRS} -L${LIB_DIRS} cudadevices.cpp -lcuda -lcudart -o cudadevices
 
 ## cuda add
-nvcc cuda_add.cu
+nvcc cuda_add.cu --output-file cuda_add
