@@ -17,6 +17,7 @@
 
 static NV_ENCODE_API_FUNCTION_LIST _nvenc = { NV_ENCODE_API_FUNCTION_LIST_VER }; // 一定要初始化一个 ver，要不然会有问题，惨痛的教训
 static void *_nvencoder = NULL;
+static CUcontext _cuctx = NULL;
 
 void load_nvenc() {
     NVENCSTATUS status = NvEncodeAPICreateInstance(&_nvenc);
@@ -43,8 +44,7 @@ void load_nvenc() {
     result = cuDeviceGetName(szDeviceName, sizeof(szDeviceName), cu_device);
     printf("%d, gpu name: %s\n", result, szDeviceName);
 
-    CUcontext cuctx = NULL;
-    result = cuCtxCreate(&cuctx, 0, cu_device);
+    result = cuCtxCreate(&_cuctx, 0, cu_device);
     if (result != CUDA_SUCCESS) {
         printf("cuda context create failed! %d\n", result);
         exit(2);
@@ -66,7 +66,7 @@ void load_nvenc() {
 
     NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS encodeSessionExParams = {0};
     encodeSessionExParams.version = NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER;
-    encodeSessionExParams.device = cuctx;
+    encodeSessionExParams.device = _cuctx;
     encodeSessionExParams.deviceType = NV_ENC_DEVICE_TYPE_CUDA;
     encodeSessionExParams.apiVersion = NVENCAPI_VERSION;
     status =  _nvenc.nvEncOpenEncodeSessionEx(&encodeSessionExParams, &_nvencoder);
@@ -248,7 +248,27 @@ void init_encoder() {
 }
 
 void end_encode() {
+    int status;
+    
+    // 通知 encoder 输入结束
+    NV_ENC_PIC_PARAMS params = { 0 };
+    params.version = NV_ENC_PIC_PARAMS_VER;
+    params.encodePicFlags = NV_ENC_PIC_FLAG_EOS;
+    status = _nvenc.nvEncEncodePicture(_nvencoder, &params);
+    if (status != NV_ENC_SUCCESS) {
+        exit(2);
+    }
+    printf("notify input stream end success!\n");
 
+    // close encoder
+    status = _nvenc.nvEncDestroyEncoder(_nvencoder);
+    if (status != NV_ENC_SUCCESS) {
+        exit(2);
+    }
+    printf("destroy encoder success!\n");
+
+    // destroy cuda context
+    cuCtxDestroy(_cuctx);
 }
 
 #define INPUT_FILE_NAME "nv12.yuv"
@@ -354,6 +374,21 @@ void encode() {
     FILE *out_fp = fopen("/root/albert/out_" INPUT_FILE_NAME ".h264", "w");
     fwrite(outdata, 1, bitstream.bitstreamSizeInBytes, out_fp);
 
+
+    // destroy input & output buffer
+    printf("\ndestroying\n");
+    status = _nvenc.nvEncDestroyInputBuffer(_nvencoder,  picParams.inputBuffer);
+    if (status != NV_ENC_SUCCESS) {
+        exit(2);
+    }
+    printf("destroy input buffer success!\n");
+
+    status = _nvenc.nvEncDestroyBitstreamBuffer(_nvencoder, picParams.outputBitstream);
+    if (status != NV_ENC_SUCCESS) {
+        exit(2);
+    }
+    printf("destroy output stream success!\n");
+
     free(outdata);
     fclose(fp);
 }
@@ -363,5 +398,6 @@ int main() {
     print_info();
     init_encoder();
     encode();
+    end_encode();
     return 0;
 }
