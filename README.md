@@ -14,5 +14,10 @@ https://docs.nvidia.com/cuda/index.html
 * cuda_add.c 使用 cuda 实现了向量相加
 * utils/FFmpeg* 来自 nvidia 的 demo 程序
 
+
 # 编译
 
+## 依赖
+
+* 首先下载 https://developer.nvidia.com/nvidia-video-codec-sdk/download
+* 安装 libnvidia-encode libnvidia-decode
