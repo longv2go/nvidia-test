@@ -1,0 +1,13 @@
+cmake_minimum_required(VERSION 3.10)
+
+# set the project name
+project(nvidia_learning VERSION 1.0)
+
+find_library(LIB_SWCALE swscale REQUIRED)
+find_path(HEADER_PATH libswscale REQUIRED)
+find_library(LIB_AVUTIL avutil REQUIRED)
+
+# add the executable
+add_executable(swlearn libswscale/main.c)
+target_include_directories(swlearn PUBLIC ${HEADER_PATH})
+target_link_libraries(swlearn ${LIB_SWCALE} ${LIB_AVUTIL})

@@ -12,3 +12,7 @@ https://docs.nvidia.com/cuda/index.html
 
 * nvenc.c 使用 nvidia 显卡编码 h264
 * cuda_add.c 使用 cuda 实现了向量相加
+* utils/FFmpeg* 来自 nvidia 的 demo 程序
+
+# 编译
+
