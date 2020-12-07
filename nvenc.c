@@ -15,6 +15,10 @@
  *  ffplay -f h264 -i test.264
  */
 
+#define INPUT_FILE_NAME "nv12.yuv"
+#define IN_FILE_PATH "/root/albert/" INPUT_FILE_NAME
+#define OUT_FILE_PATH "/root/albert/out_" INPUT_FILE_NAME ".h264"
+
 static NV_ENCODE_API_FUNCTION_LIST _nvenc = { NV_ENCODE_API_FUNCTION_LIST_VER }; // 一定要初始化一个 ver，要不然会有问题，惨痛的教训
 static void *_nvencoder = NULL;
 static CUcontext _cuctx = NULL;
@@ -271,7 +275,7 @@ void end_encode() {
     cuCtxDestroy(_cuctx);
 }
 
-#define INPUT_FILE_NAME "nv12.yuv"
+
 
 void encode() {
     // create input buffer
@@ -299,7 +303,7 @@ void encode() {
     printf("create output stream success, %p\n", outbuf.bitstreamBuffer);
 
     // read yuv data
-    FILE *fp = fopen("/root/albert/" INPUT_FILE_NAME, "r");
+    FILE *fp = fopen(IN_FILE_PATH, "r");
     fseek(fp, 0, SEEK_END);
     size_t size = ftell(fp);
     printf("file size： %lu\n", size);
@@ -371,7 +375,7 @@ void encode() {
     }
 
     // out ot file
-    FILE *out_fp = fopen("/root/albert/out_" INPUT_FILE_NAME ".h264", "w");
+    FILE *out_fp = fopen(OUT_FILE_PATH, "w");
     fwrite(outdata, 1, bitstream.bitstreamSizeInBytes, out_fp);
 
 
