@@ -45,7 +45,7 @@ public:
 
         oc->oformat = fmt;
         oc->url = av_strdup(szInFilePath);
-        std::cout << "Streaming destination: " << oc->url;
+        std::cout << "Streaming destination: " << oc->url << std::endl;
 
         // Add video stream to oc
         vs = avformat_new_stream(oc, NULL);

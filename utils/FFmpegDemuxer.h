@@ -77,7 +77,7 @@ private:
             return;
         }
 
-        std::cout << "Media format: " << fmtc->iformat->long_name << " (" << fmtc->iformat->name << ")";
+        std::cout << "Media format: " << fmtc->iformat->long_name << " (" << fmtc->iformat->name << ")" << std::endl;
 
         ck(avformat_find_stream_info(fmtc, NULL));
         iVideoStream = av_find_best_stream(fmtc, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);

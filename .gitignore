@@ -3,3 +3,5 @@ build
 cuda_add
 nvenc
 opencl_test
+nvdec
+.vscode
