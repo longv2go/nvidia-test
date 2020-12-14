@@ -103,6 +103,15 @@ int handleDecodePicture(void *ud, CUVIDPICPARAMS * param) {
     return 1;
 }
 
+// 参考 nvidia 示例代码
+int GetWidth() {
+    return (V_WIDTH + 1) & ~1;
+}
+
+int GetFrameSize() {
+   return GetWidth() * (V_HEIGHT + (V_HEIGHT * 0.5 * 1)) * 1;
+}
+
 // 获取解码数据
 int handleDisplayPicture(void *ud, CUVIDPARSERDISPINFO *pDispInfo) {
     static int nFrame = 0;
@@ -116,7 +125,7 @@ int handleDisplayPicture(void *ud, CUVIDPARSERDISPINFO *pDispInfo) {
     // videoProcessingParameters.second_field = pDispInfo->repeat_first_field + 1;
     // videoProcessingParameters.top_field_first = pDispInfo->top_field_first;
     // videoProcessingParameters.unpaired_field = pDispInfo->repeat_first_field < 0;
-    videoProcessingParameters.output_stream = (CUstream)2;
+    videoProcessingParameters.output_stream = _stream;
 
     CUdeviceptr dpSrcFrame = 0;
     unsigned int nSrcPitch = 0;
@@ -133,13 +142,37 @@ int handleDisplayPicture(void *ud, CUVIDPARSERDISPINFO *pDispInfo) {
 
     // 获取解码
     // int frameSize = (ChromaFormat == cudaVideoChromaFormat_444) ? nPitch * (3*nheight) : nPitch * (nheight + (nheight + 1) / 2);
-    int framesize = V_HEIGHT * V_WIDTH * 3 / 2;
+    int framesize = V_HEIGHT * V_WIDTH * 3 / 2; 
+    framesize = GetFrameSize();
+    printf("frame size: %d\n", framesize);
+
     char *hostptr = NULL;
     result = cuMemAllocHost((void**)&hostptr, framesize);
     CK(result);
 
     if (hostptr) {
-        result = cuMemcpyDtoH(hostptr, dpSrcFrame, framesize);
+        // 这里注意，由于显卡的字节对齐方式是不同的，所以不能直接 copy 出来到内存 https://www.jianshu.com/p/eace8c08b169
+        // 代码参考 nvidia 的 sample
+
+        // copy luma(亮度数据)
+        CUDA_MEMCPY2D m = { 0 };
+        m.srcMemoryType = CU_MEMORYTYPE_DEVICE;
+        m.srcDevice = dpSrcFrame;
+        m.srcPitch = nSrcPitch;
+        m.dstMemoryType = CU_MEMORYTYPE_HOST;
+        m.dstHost = hostptr;
+        m.dstDevice = (CUdeviceptr)hostptr;
+        m.dstPitch = GetWidth();
+        m.WidthInBytes = GetWidth();
+        m.Height = V_HEIGHT;
+        result = cuMemcpy2DAsync(&m, _stream);
+        CK(result);
+
+        // copy chroma(色度数据)
+        m.srcDevice = (CUdeviceptr)((uint8_t *)dpSrcFrame + m.srcPitch * ((V_HEIGHT + 1) & ~1));
+        m.dstDevice = (CUdeviceptr)(m.dstHost = hostptr + m.dstPitch * V_HEIGHT);
+        m.Height = V_HEIGHT / 2;
+        result = cuMemcpy2DAsync(&m, _stream);
         CK(result);
     }
 
