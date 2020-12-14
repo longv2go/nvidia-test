@@ -1,2 +1,5 @@
 **/.DS_Store
 build
+cuda_add
+nvenc
+opencl_test
