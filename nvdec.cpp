@@ -16,6 +16,7 @@ static CUvideoparser _parser = NULL;
 static CUvideodecoder _decoder = NULL;
 static FFmpegDemuxer *_demuxer = NULL;
 static FFmpegStreamer *_out_stream = NULL;
+static CUstream _stream = NULL;
 
 #define P_CAP(caps, key) printf(#key ": %d\n", caps.key)
 void print_dec_caps(CUVIDDECODECAPS caps) {
@@ -52,6 +53,7 @@ void print_video_format(CUVIDEOFORMAT *format) {
     P_FMT_D(format, coded_width);
     P_FMT_D(format, coded_height);
     P_FMT_D(format, chroma_format);
+    P_FMT_D(format, bit_depth_luma_minus8);
     printf("\n");
 }
 
@@ -60,31 +62,42 @@ int handleSequence(void *ud, CUVIDEOFORMAT *format) {
     print_video_format(format);
 
     // decoder
-    CUvideodecoder phDecoder;
     CUVIDDECODECREATEINFO pdci = {0};
     pdci.CodecType = format->codec;
     pdci.ulWidth = format->coded_width;
     pdci.ulHeight = format->coded_height;
     pdci.ulNumDecodeSurfaces = format->min_num_decode_surfaces;
-    // pdci.ulTargetWidth = 1920;
-    // pdci.ulTargetHeight = 1080;
+    pdci.ulTargetWidth = format->coded_width;;
+    pdci.ulTargetHeight = format->coded_height;
     pdci.ChromaFormat = format->chroma_format;
     pdci.OutputFormat = cudaVideoSurfaceFormat_NV12;
+    pdci.bitDepthMinus8 = format->bit_depth_luma_minus8;
+    pdci.ulNumOutputSurfaces = 2;
 
-    // if (format->progressive_sequence)
-    //     pdci.DeinterlaceMode = cudaVideoDeinterlaceMode_Weave;
-    // else
-    //     pdci.DeinterlaceMode = cudaVideoDeinterlaceMode_Adaptive;
+    if (format->progressive_sequence)
+        pdci.DeinterlaceMode = cudaVideoDeinterlaceMode_Weave;
+    else
+        pdci.DeinterlaceMode = cudaVideoDeinterlaceMode_Adaptive;
 
-    CUresult result = cuvidCreateDecoder(&phDecoder, &pdci);
+    CUresult result = cuvidCreateDecoder(&_decoder, &pdci);
     CK(result);
 
     // 要正确的返回，否则或导致在 cuvidParseVideoData 奇怪的错误
     return format->min_num_decode_surfaces;
 }
 
+#define P_PIC(param, key) printf(#key ": %d\n", param->key)
+void print_pic_param(CUVIDPICPARAMS *param) {
+    P_PIC(param, PicWidthInMbs);
+    P_PIC(param, FrameHeightInMbs);
+    P_PIC(param, CurrPicIdx);
+    P_PIC(param, nBitstreamDataLen);
+    P_PIC(param, nNumSlices);
+}
+
 // 解码
 int handleDecodePicture(void *ud, CUVIDPICPARAMS * param) {
+    // print_pic_param(param);
     CUresult result = cuvidDecodePicture(_decoder, param);
     CK(result);
     return 1;
@@ -92,18 +105,23 @@ int handleDecodePicture(void *ud, CUVIDPICPARAMS * param) {
 
 // 获取解码数据
 int handleDisplayPicture(void *ud, CUVIDPARSERDISPINFO *pDispInfo) {
-    return 1;
     static int nFrame = 0;
 
-    CUVIDPROCPARAMS videoProcessingParameters = {};
+    printf("pix index: %d\n", pDispInfo->picture_index);
+    printf("top_field_first: %d\n", pDispInfo->top_field_first);
+    printf("second_field: %d\n", pDispInfo->repeat_first_field);
+
+    CUVIDPROCPARAMS videoProcessingParameters = {0};
     videoProcessingParameters.progressive_frame = pDispInfo->progressive_frame;
-    videoProcessingParameters.second_field = pDispInfo->repeat_first_field + 1;
-    videoProcessingParameters.top_field_first = pDispInfo->top_field_first;
-    videoProcessingParameters.unpaired_field = pDispInfo->repeat_first_field < 0;
-    videoProcessingParameters.output_stream = 0;
+    // videoProcessingParameters.second_field = pDispInfo->repeat_first_field + 1;
+    // videoProcessingParameters.top_field_first = pDispInfo->top_field_first;
+    // videoProcessingParameters.unpaired_field = pDispInfo->repeat_first_field < 0;
+    videoProcessingParameters.output_stream = (CUstream)2;
 
     CUdeviceptr dpSrcFrame = 0;
     unsigned int nSrcPitch = 0;
+
+    // 如果 decoder 创建的参数有问题，报错可能会出现在这里
     CUresult result = cuvidMapVideoFrame(_decoder, pDispInfo->picture_index, &dpSrcFrame, &nSrcPitch, &videoProcessingParameters);
     CK(result);
     printf("pitch: %d\n", nSrcPitch);
