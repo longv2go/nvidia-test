@@ -13,11 +13,14 @@ https://docs.nvidia.com/cuda/index.html
 * nvenc.c 使用 nvidia 显卡编码 h264
 * cuda_add.c 使用 cuda 实现了向量相加
 * utils/FFmpeg* 来自 nvidia 的 demo 程序
+* nvdec.cpp 使用 nvidia 显卡硬解码 h264
 
 
 # 编译
 
+`make`
+
 ## 依赖
 
-* 首先下载 https://developer.nvidia.com/nvidia-video-codec-sdk/download
+* 首先下载 https://developer.nvidia.com/nvidia-video-codec-sdk/download, 然后相应的修改 Makefile 的 INCLUDE_DIRS 变量
 * 安装 libnvidia-encode libnvidia-decode
