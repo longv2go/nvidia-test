@@ -104,6 +104,7 @@ int handleDecodePicture(void *ud, CUVIDPICPARAMS * param) {
 }
 
 // 参考 nvidia 示例代码
+// NV12/P016 output format width is 2 byte aligned because of U and V interleave
 int GetWidth() {
     return (V_WIDTH + 1) & ~1;
 }
