@@ -53,6 +53,13 @@ void show_info(int gpu_idx) {
     printf("\tPCIe Throughput: TX: %d KB/s, RX: %d KB/s\n", tx_value, rx_value);
 
     // encoder & decoder info
+    unsigned int utilization, samplingPeriodUs;
+    CK(nvmlDeviceGetEncoderUtilization(device, &utilization, &samplingPeriodUs));
+    printf("\tEncoder Util: %d%\n", utilization);
+
+    CK(nvmlDeviceGetDecoderUtilization(device, &utilization, &samplingPeriodUs));
+    printf("\tDecoder Util: %d%\n", utilization);
+
     unsigned int value;
     CK(nvmlDeviceGetEncoderCapacity(device, NVML_ENCODER_QUERY_H264, &value));
     printf("\tEncoder(H264) Cap: %d%\n", value);
@@ -61,6 +68,9 @@ void show_info(int gpu_idx) {
     CK(nvmlDeviceGetEncoderStats(device, &sessionCount, &averageFps, &averageLatency));
     printf("\tEncoder Stats, session count: %d, averageFps: %d, averageLatency: %dms\n", sessionCount, averageFps, averageLatency);
 
+    sessionCount = 0;
+    CK(nvmlDeviceGetEncoderSessions(device, &sessionCount, NULL));
+    printf("\tEncoder Sessions: %d\n", sessionCount);
     if (sessionCount) {
         nvmlEncoderSessionInfo_t *sessinfos = (nvmlEncoderSessionInfo_t *)malloc(sessionCount * sizeof(nvmlEncoderSessionInfo_t));
         CK(nvmlDeviceGetEncoderSessions(device, &sessionCount, sessinfos));
