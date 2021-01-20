@@ -14,7 +14,7 @@ https://docs.nvidia.com/cuda/index.html
 * cuda_add.c 使用 cuda 实现了向量相加
 * utils/FFmpeg* 来自 nvidia 的 demo 程序
 * nvdec.cpp 使用 nvidia 显卡硬解码 h264
-
+* nvml_info.cpp 使用 NVML 接口获取 GPU 信息
 
 # 编译
 

@@ -1,5 +1,5 @@
 PWD := $(shell pwd)
-INCLUDE_DIRS := -I$(PWD)/../Video_Codec_SDK_11.0.10/Interface -I/usr/local/cuda/include
+INCLUDE_DIRS := -I$(PWD)/../Video_Codec_SDK_11.0.10/Interface -I/usr/local/cuda/include -I/usr/local/cuda-11.1/targets/x86_64-linux/include
 LIB_DIRS := "/usr/local/cuda/lib64"
 
 all: nvenc nvdec opencl_test cuda_add
@@ -16,7 +16,10 @@ cuda_add: cuda_add.cu
 nvdec: nvdec.cpp
 	g++ -g -O0 $(INCLUDE_DIRS) -L$(LIB_DIRS) nvdec.cpp -lnvcuvid -lcuda -lavformat -lavcodec -lavutil -o nvdec
 
+nvml_info: nvml_info.cpp
+	g++ -g -O0 $(INCLUDE_DIRS) -L$(LIB_DIRS) nvml_info.cpp -lnvidia-ml -o nvml_info
+
 clean:
-	rm cuda_add nvdec nvenc opencl_test *.o
+	rm cuda_add nvdec nvenc opencl_test nvml_info *.o
 
 .PHONY: clean
