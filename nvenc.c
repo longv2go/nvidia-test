@@ -34,6 +34,8 @@
 #define INPUT_FILE_NAME "nv12.yuv"
 #define IN_FILE_PATH "/root/albert/" INPUT_FILE_NAME
 #define OUT_FILE_PATH "/root/albert/out_" INPUT_FILE_NAME ".h264"
+#define V_WIDTH 1920
+#define V_HEIGHT 1080
 
 static NV_ENCODE_API_FUNCTION_LIST _nvenc = { NV_ENCODE_API_FUNCTION_LIST_VER }; // 一定要初始化一个 ver，要不然会有问题，惨痛的教训
 static void *_nvencoder = NULL;
@@ -177,10 +179,10 @@ void init_encoder() {
     NV_ENC_INITIALIZE_PARAMS params;
     params.version = NV_ENC_INITIALIZE_PARAMS_VER;
     params.encodeGUID = NV_ENC_CODEC_H264_GUID;
-    params.encodeWidth = 1920;
-    params.encodeHeight = 1080;
-    params.darWidth = 1920;
-    params.darHeight = 1080;
+    params.encodeWidth = V_WIDTH;
+    params.encodeHeight = V_HEIGHT;
+    params.darWidth = V_WIDTH;
+    params.darHeight = V_HEIGHT;
     params.presetGUID = NV_ENC_PRESET_P4_GUID;
     params.tuningInfo = NV_ENC_TUNING_INFO_LOW_LATENCY;
     params.enableEncodeAsync = 0;
@@ -222,14 +224,12 @@ void end_encode() {
     cuCtxDestroy(_cuctx);
 }
 
-
-
 void encode() {
     // create input buffer
     printf("\n");
     NV_ENC_CREATE_INPUT_BUFFER inputbuf = { NV_ENC_CREATE_INPUT_BUFFER_VER };
-    inputbuf.width = 1920;
-    inputbuf.height = 1080;
+    inputbuf.width = V_WIDTH;
+    inputbuf.height = V_HEIGHT;
     inputbuf.bufferFmt = NV_ENC_BUFFER_FORMAT_NV12;
     inputbuf.inputBuffer = NULL;
 
@@ -266,8 +266,8 @@ void encode() {
     // construct pic params
     NV_ENC_PIC_PARAMS picParams = { 0 };
     picParams.version = NV_ENC_PIC_PARAMS_VER;
-    picParams.inputWidth = 1920;
-    picParams.inputHeight = 1080;
+    picParams.inputWidth = V_WIDTH;
+    picParams.inputHeight = V_HEIGHT;
 
     // 这里如果选择 yuv444 会导致失败 nvEncEncodePicture 返回 12，pix fmt 和 preset guid 要互相配合，这里的关系暂时没搞清楚
     picParams.bufferFmt = NV_ENC_BUFFER_FORMAT_NV12;
