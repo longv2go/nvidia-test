@@ -6,3 +6,4 @@ opencl_test
 nvdec
 nvml_info
 .vscode
+core.*

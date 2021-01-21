@@ -8,7 +8,7 @@ https://developer.nvidia.com/zh-cn/cuda-downloads
 https://docs.nvidia.com/cuda/index.html
 
 
-# 文件
+# 程序
 
 * nvenc.c 使用 nvidia 显卡编码 h264
 * cuda_add.c 使用 cuda 实现了向量相加
@@ -22,5 +22,7 @@ https://docs.nvidia.com/cuda/index.html
 
 ## 依赖
 
-* 首先下载 https://developer.nvidia.com/nvidia-video-codec-sdk/download, 然后相应的修改 Makefile 的 INCLUDE_DIRS 变量
+* Interface 头文件目录来自 Nvidia Codec SDK
 * 安装 libnvidia-encode libnvidia-decode
+
+在 Device: Tesla T4, Driver Ver: 455.38, CUDA Ver: 11.1 环境下可编译

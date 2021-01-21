@@ -1,5 +1,5 @@
 PWD := $(shell pwd)
-INCLUDE_DIRS := -I$(PWD)/../Video_Codec_SDK_11.0.10/Interface -I/usr/local/cuda/include -I/usr/local/cuda-11.1/targets/x86_64-linux/include
+INCLUDE_DIRS := -I$(PWD)/Interface -I/usr/local/cuda/include -I/usr/local/cuda-11.1/targets/x86_64-linux/include
 LIB_DIRS := "/usr/local/cuda/lib64"
 
 all: nvenc nvdec opencl_test cuda_add
