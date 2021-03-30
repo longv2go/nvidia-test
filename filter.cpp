@@ -1,6 +1,3 @@
-/**
- * compile: clang filter.c -lavfilter -lavcodec -lavformat -o overlay
- */
 #include <stdio.h>
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -56,7 +53,7 @@ int init_filters(AVFilterGraph* filter_graph, int in_width_1, int in_height_1, i
     // overlay
     const AVFilter *overlayFilter = avfilter_get_by_name("overlay");
     AVFilterContext *overlayFilter_ctx;
-    ret = avfilter_graph_create_filter(&overlayFilter_ctx, overlayFilter, "overlay", "W-w:H/2", NULL, filter_graph);
+    ret = avfilter_graph_create_filter(&overlayFilter_ctx, overlayFilter, "overlay", "W-w:H-h", NULL, filter_graph);
     if (ret < 0) {
         printf("Fail to create overlay filter\n");
         return -1;
@@ -111,21 +108,11 @@ int main(int argc, char **argv) {
     }
 
     int ret = 0;
-    AVPacket packet;
-    AVFrame *frame;
-    AVFrame *filt_frame;
 
     AVFilterGraph* filter_graph = avfilter_graph_alloc();
     if (!filter_graph) {
         printf("Fail to create filter graph!\n");
         return -1;
-    }
-
-    frame = av_frame_alloc();
-    filt_frame = av_frame_alloc();
-    if (!frame || !filt_frame) {
-        perror("Could not allocate frame");
-        exit(1);
     }
 
     FFmpegDemuxer *file1 = new FFmpegDemuxer(argv[1], FILE1_SIZE);
@@ -135,7 +122,6 @@ int main(int argc, char **argv) {
         printf("Fail to create file for output\n");
         return -1;
     }
-
 
     init_filters(filter_graph, file1->GetWidth(), file1->GetHeight(), file2->GetWidth(), file2->GetHeight());
 
