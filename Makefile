@@ -1,6 +1,7 @@
 PWD := $(shell pwd)
 INCLUDE_DIRS := -I$(PWD)/Interface -I/usr/local/cuda/include -I/usr/local/cuda-11.1/targets/x86_64-linux/include
 LIB_DIRS := "/usr/local/cuda/lib64"
+LIB_FFMPEG_DIR := "/Users/albert/Workspace/alibaba/thirdparty/ffmpeg/lib2"
 
 all: nvenc nvdec opencl_test cuda_add nvml_info
 
@@ -18,6 +19,9 @@ nvdec: nvdec.cpp
 
 nvml_info: nvml_info.cpp
 	g++ -g -O0 $(INCLUDE_DIRS) -L$(LIB_DIRS) nvml_info.cpp -lnvidia-ml -o nvml_info
+
+filter: filter.cpp
+	clang++ -arch x86_64 -g -O0 -L$(LIB_FFMPEG_DIR) filter.cpp  -std=c++11 -lavfilter -lavcodec -lavformat -o filter
 
 clean:
 	rm cuda_add nvdec nvenc opencl_test nvml_info *.o
